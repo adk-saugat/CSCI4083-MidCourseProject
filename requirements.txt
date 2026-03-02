@@ -10,3 +10,4 @@ tensorflow
 wandb
 tensorflow-metal
 tensorflow-macos
+opencv-python
