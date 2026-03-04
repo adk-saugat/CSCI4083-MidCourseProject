@@ -19,6 +19,24 @@ def load_mlp_model(path: str):
     return tf.keras.models.load_model(path)
 
 
+def prepare_inputs_for_keras_model(model, x):
+    """Normalize and reshape inputs to match a loaded Keras model."""
+    x = np.array(x, dtype=np.float32) / 255.0
+    input_shape = model.input_shape
+
+    # CNN-style input: (None, H, W, C)
+    if len(input_shape) == 4 and x.ndim == 2:
+        _, h, w, c = input_shape
+        if h is not None and w is not None and c is not None:
+            x = x.reshape((-1, h, w, c))
+
+    # MLP-style input: (None, D)
+    elif len(input_shape) == 2 and x.ndim > 2:
+        x = x.reshape((x.shape[0], -1))
+
+    return x
+
+
 def compute_metrics(y_true, y_pred):
     accuracy = accuracy_score(y_true, y_pred)
     precision = precision_score(y_true, y_pred, average='macro')
@@ -41,9 +59,10 @@ def compare_models(
 
     rf = load_rf_model(rf_path)
     mlp = load_mlp_model(mlp_path)
+    X_test_keras = prepare_inputs_for_keras_model(mlp, X_test)
 
     y_pred_rf = rf.predict(X_test_scaled)
-    y_pred_mlp = np.argmax(mlp.predict(X_test), axis=1)
+    y_pred_mlp = np.argmax(mlp.predict(X_test_keras), axis=1)
     rf_metrics = compute_metrics(y_test, y_pred_rf)
     mlp_metrics = compute_metrics(y_test, y_pred_mlp)
 
